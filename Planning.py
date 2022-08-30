@@ -37,9 +37,9 @@ class Planning:
             a = self.intranet.get_module(self.current_year, 
                                          module['code'], 
                                          module['codeinstance'])
-            resp = [resp for resp in a['resp'] if resp['login'] in referee]
-            if len(resp) > 0:
-                tmp_modules.append(module)
+            for resp in a['resp']:
+                if resp['login'] in referee:
+                    tmp_modules.append(module)
         return tmp_modules
 
     def add_project(self, begin, end, title, module_name):
@@ -101,24 +101,26 @@ class Planning:
 from Exporters import Excel, Calendar
 import YAWAEI.YAWAIE.intranet as YAWAEI
 import sys
+import argparse
 
 if __name__ == '__main__':
-    _type = sys.argv[1]
-    intra = YAWAEI.AutologinIntranet(sys.argv[2])
-    title = sys.argv[3]
-    if len(sys.argv) > 5:
-        pedago = sys.argv[4]
+    parser = argparse.ArgumentParser(description='Generate plannings')
+    parser.add_argument('mode', metavar='mode', type=str, nargs=1,
+                    help='Mode of the planning generation (ics or xlsx)')
+    parser.add_argument('token', metavar='token', type=str, nargs=1,
+                    help='Intranet token autologin')
+    parser.add_argument('title', metavar='title', type=str, nargs=1,
+                    help='title of the generated file')
+    parser.add_argument('pedago', metavar='pedago', type=str, nargs='+',
+                    help='Pedago mail address to filter modules')
+    args = parser.parse_args()
+
+    intra = YAWAEI.AutologinIntranet(args.token[0])
+    if args.mode[0] == 'ics':
+        i = Calendar(args.title[0])
+    elif args.mode[0] == 'xlsx':
+        i = Excel(args.title[0])
     else:
-        pedago = ""
-    if _type == 'ics':
-        i = Calendar(title)
-    elif _type == 'xlsx':
-        i = Excel(title)
-    else:
-        print("Unrocognized mode type")
-        print('Usage:\t\n\tpipenv run python Planning.py <mode> <token> <title>' 
-              ' <pedago>\n<mode> :\n\t- ics\n\t- xlsx\n<token> : intranet autol'
-              'ogin token\n<title> : name of the planning\n<pedago> : email '
-              'address of the filtered pedago')
         sys.exit(False)
-    p = Planning(i, intra, ('08', '11'), [pedago])
+
+    p = Planning(i, intra, ('08', '11'), args.pedago)
